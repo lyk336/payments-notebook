@@ -4,10 +4,11 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import Home from './components/Home';
 import Settings from './components/Settings';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'react-native';
+import { EventRegister } from 'react-native-event-listeners';
 
 const statusBarHeight = StatusBar.currentHeight;
 
@@ -26,12 +27,31 @@ DrawerSection.propTypes = {
 };
 
 const DrawerComponents = ({ currentScreen, navigation }) => {
+  const [editing, setEditing] = useState(false);
+
+  const toggleEdit = () => {
+    setEditing(!editing);
+    navigation.closeDrawer();
+  };
+  useEffect(() => {
+    // clean previous events to avoid double function calls
+    EventRegister.removeEventListener(titleChangeEvent);
+    // handle drawer menu's button
+    const titleChangeEvent = EventRegister.addEventListener('toggleEditTitle', toggleEdit);
+  }, [toggleEdit]);
+
   switch (currentScreen) {
     case 'Home':
       return (
         <>
           <DrawerSection title='Tools' />
-          <DrawerItem label='Edit list' />
+          <DrawerItem
+            label={editing ? 'Finish editing' : 'Edit list'}
+            onPress={() => {
+              EventRegister.emit('toggleEdit');
+              EventRegister.emit('toggleEditTitle');
+            }}
+          />
         </>
       );
 
@@ -52,7 +72,6 @@ const App = () => {
     <NavigationContainer
       ref={navigationRef}
       onStateChange={() => {
-        console.log(navigationRef.getCurrentRoute().name);
         setCurrentScreen(navigationRef.getCurrentRoute().name);
       }}
     >
@@ -64,9 +83,7 @@ const App = () => {
             minWidth: '25%',
           },
           header: ({ navigation }) => (
-            // continue here
             <View style={styles.header}>
-              {/* <StatusBar style='auto' backgroundColor='#fff' /> */}
               <Text style={styles.header__title}>{currentScreen}</Text>
               <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
                 <View style={styles.header__icon}>
@@ -81,7 +98,7 @@ const App = () => {
           <DrawerContentScrollView>
             <DrawerSection title='Screens' />
             <DrawerItemList {...props} />
-            <DrawerComponents currentScreen={currentScreen} />
+            <DrawerComponents currentScreen={currentScreen} navigation={props.navigation} />
           </DrawerContentScrollView>
         )}
       >
