@@ -6,7 +6,7 @@ import Home from './components/Home';
 import Settings from './components/Settings';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
 
@@ -82,16 +82,26 @@ const App = () => {
             width: 250,
             minWidth: '25%',
           },
-          header: ({ navigation }) => (
-            <View style={styles.header}>
-              <Text style={styles.header__title}>{currentScreen}</Text>
-              <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
-                <View style={styles.header__icon}>
-                  <Feather name='menu' size={28} color='black' />
-                </View>
-              </Pressable>
-            </View>
-          ),
+          header: ({ navigation, route }) => {
+            return (
+              <View style={styles.header}>
+                {route.name !== 'Home' && (
+                  <Pressable style={styles.header__back} onPress={() => navigation.goBack()}>
+                    <View>
+                      <MaterialIcons name='arrow-back' size={28} color='black' />
+                    </View>
+                    <Text style={styles.header__backText}>Back</Text>
+                  </Pressable>
+                )}
+                <Text style={styles.header__title}>{currentScreen}</Text>
+                <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
+                  <View style={styles.header__icon}>
+                    <Feather name='menu' size={28} color='black' />
+                  </View>
+                </Pressable>
+              </View>
+            );
+          },
         }}
         initialRouteName='Home'
         drawerContent={(props) => (
@@ -153,6 +163,16 @@ const styles = StyleSheet.create({
   header__icon: {
     paddingTop: 6,
     marginBottom: -6,
+  },
+  header__back: {
+    marginRight: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  header__backText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

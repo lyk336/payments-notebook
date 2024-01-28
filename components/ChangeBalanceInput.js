@@ -1,12 +1,7 @@
 import PropTypes from 'prop-types';
 import { useFormik } from 'formik';
-import { TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import * as yup from 'yup';
+import { TextInput, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
-
-const numberSchema = yup.object({
-  balance: yup.number(),
-});
 
 const ChangeBalanceInput = ({ balance, handleSubmit, id, insufficientMoney }) => {
   const formik = useFormik({
@@ -59,7 +54,6 @@ ChangeBalanceInput.propTypes = {
 
 const styles = StyleSheet.create({
   input: {
-    // marginLeft: -19,
     marginTop: -5,
     marginBottom: -6,
     width: 40,
@@ -77,4 +71,3 @@ const styles = StyleSheet.create({
 });
 
 export default ChangeBalanceInput;
-// shoud try useFormikContext or useFormik

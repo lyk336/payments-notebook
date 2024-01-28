@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, Alert, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Alert, ScrollView } from 'react-native';
 import { Shadow } from 'react-native-shadow-2';
 import CustomButton from './CustomButton';
 import { EventRegister } from 'react-native-event-listeners';
@@ -264,7 +264,9 @@ export default function Home({ navigation }) {
             person.currentCash += paymentAmount;
             person.lastUpdate = getCurrrentTime();
           });
-          activePerson && setActivePerson('');
+          if (activePerson) {
+            setActivePerson('');
+          }
         } else {
           // case when button changes single balance
           listClone.forEach((person) => {
@@ -286,7 +288,9 @@ export default function Home({ navigation }) {
               lessMoneyPeople.push(person.name);
             }
           });
-          activePerson && setActivePerson('');
+          if (activePerson) {
+            setActivePerson('');
+          }
         } else {
           listClone.forEach((person) => {
             if (person.id === id && person.currentCash >= paymentAmount) {
