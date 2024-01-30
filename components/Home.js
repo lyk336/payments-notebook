@@ -8,6 +8,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ChangeBalanceInput from './ChangeBalanceInput';
 import lodash from 'lodash';
 import SortMethodPicker from './SortMethodPicker';
+import useThemeColors from '../hooks/useThemeColors';
+import { getPrice } from '../utils/operatePrice';
+import { storeList, getList } from '../utils/operateList';
 
 const getCurrrentTime = () => {
   const date = new Date();
@@ -22,7 +25,8 @@ const getCurrrentTime = () => {
 };
 
 export default function Home({ navigation }) {
-  const [list, setList] = useState([
+  /* 
+  [
     {
       name: 'Вова',
       currentCash: 20,
@@ -95,7 +99,9 @@ export default function Home({ navigation }) {
       pairId: '2',
       id: '2123',
     },
-  ]);
+  ]
+  */
+  const [list, setList] = useState([]);
   // should be replaced by settings obj or something in future
   const [paymentAmount, setPaymentAmount] = useState(18);
   // ---------------------------------------------------------
@@ -103,11 +109,13 @@ export default function Home({ navigation }) {
   const [addingPerson, setAddingPerson] = useState(false);
   const [activePerson, setActivePerson] = useState('');
   const [sortMethod, setSortMethod] = useState('byAlphabet');
+  const { themeStyles } = useThemeColors();
 
   const createAlert = (peopleList, listToUpdate) => {
     const alertText = `Some people don't have enough money : ${peopleList}`;
     const handleWithdraw = () => {
       setList(listToUpdate);
+      storeList(listToUpdate, sortList);
     };
 
     Alert.alert('Not enough money!', alertText, [
@@ -123,11 +131,33 @@ export default function Home({ navigation }) {
     ]);
   };
 
+  // get data from async storage when app loads
+  useEffect(() => {
+    getPrice(setPaymentAmount);
+    getList(setList);
+    sortList.sort();
+  }, []);
+
+  // add event listeners
   const toggleEdit = () => {
     setEditing(!editing);
     setAddingPerson(false);
     navigation.closeDrawer();
   };
+  const changePricePerLesson = () => {
+    getPrice(setPaymentAmount);
+  };
+  useEffect(() => {
+    // clean previous events to avoid double function calls
+    EventRegister.removeEventListener(toggleEditEvent);
+    // handle drawer menu's button
+    const toggleEditEvent = EventRegister.addEventListener('toggleEdit', toggleEdit);
+  }, [toggleEdit]);
+  useEffect(() => {
+    EventRegister.removeEventListener(priceChangeEvent);
+    // handle drawer menu's button
+    const priceChangeEvent = EventRegister.addEventListener('priceChange', changePricePerLesson);
+  }, [changePricePerLesson]);
 
   const sortList = {
     compare(firstItem, secondItem) {
@@ -216,13 +246,6 @@ export default function Home({ navigation }) {
     sortList.sort();
   }, [sortMethod]);
 
-  useEffect(() => {
-    // clean previous events to avoid double function calls
-    EventRegister.removeEventListener(toggleEditEvent);
-    // handle drawer menu's button
-    const toggleEditEvent = EventRegister.addEventListener('toggleEdit', toggleEdit);
-  }, [toggleEdit]);
-
   const handleAddPerson = (person) => {
     const date = new Date();
 
@@ -232,6 +255,8 @@ export default function Home({ navigation }) {
     person.lastUpdate = getCurrrentTime();
 
     setList([person, ...list]);
+    storeList([person, ...list], sortList);
+
     setAddingPerson(false);
   };
 
@@ -250,6 +275,7 @@ export default function Home({ navigation }) {
     });
 
     setList(listClone);
+    storeList(listClone, sortList);
   };
 
   const handleChangeBalance = (operation, id) => {
@@ -315,6 +341,7 @@ export default function Home({ navigation }) {
       createAlert(peopleListForMessage, listClone);
     } else {
       setList(listClone);
+      storeList(listClone, sortList);
     }
   };
 
@@ -336,37 +363,15 @@ export default function Home({ navigation }) {
 
   return (
     <Pressable
-      style={styles.content}
+      style={[styles.content, themeStyles.background]}
       onPress={() => {
         activePerson && setActivePerson('');
       }}
     >
-      <View style={styles.tools}>
-        <Text style={styles.tools__title}>{editing ? 'Editing' : 'Change all balances in one click'}</Text>
+      <View style={[styles.tools, themeStyles.background]}>
+        <Text style={[styles.tools__title, themeStyles.fontColor]}>{editing ? 'Editing' : 'Change all balances in one click'}</Text>
         <View style={[styles.tools__buttons, { flexDirection: editing ? 'column' : 'row' }]}>
-          {!editing && (
-            <>
-              <CustomButton
-                style={[styles.button, styles.tools__addPaymentForEach]}
-                textStyle={styles.buttonText}
-                handler={() => {
-                  handleChangeBalance('+');
-                }}
-              >
-                Add <Text>{paymentAmount}</Text>
-              </CustomButton>
-              <CustomButton
-                style={[styles.button, styles.tools__withdrawPaymentFromEach]}
-                textStyle={styles.buttonText}
-                handler={() => {
-                  handleChangeBalance('-');
-                }}
-              >
-                Withdraw <Text>{paymentAmount}</Text>
-              </CustomButton>
-            </>
-          )}
-          {editing && (
+          {editing ? (
             <>
               <CustomButton
                 style={[styles.button, styles.tools__addPerson]}
@@ -394,14 +399,36 @@ export default function Home({ navigation }) {
                   setAddingPerson(false);
                 }}
                 handleAddPerson={handleAddPerson}
+                inputStyle={themeStyles.fontColor}
               />
+            </>
+          ) : (
+            <>
+              <CustomButton
+                style={[styles.button, styles.tools__addPaymentForEach]}
+                textStyle={styles.buttonText}
+                handler={() => {
+                  handleChangeBalance('+');
+                }}
+              >
+                Add <Text>{paymentAmount}</Text>
+              </CustomButton>
+              <CustomButton
+                style={[styles.button, styles.tools__withdrawPaymentFromEach]}
+                textStyle={styles.buttonText}
+                handler={() => {
+                  handleChangeBalance('-');
+                }}
+              >
+                Withdraw <Text>{paymentAmount}</Text>
+              </CustomButton>
             </>
           )}
         </View>
         <SortMethodPicker value={sortMethod} handleSortChange={handleSortChange} />
       </View>
       {/* List */}
-      <ScrollView style={styles.peopleList}>
+      <ScrollView style={[styles.peopleList, themeStyles.background]}>
         {list.map((item) => (
           <View key={item.id}>
             <Pressable
@@ -413,12 +440,18 @@ export default function Home({ navigation }) {
                 setActivePerson(item.id);
               }}
             >
-              <Shadow style={styles.person} stretch={true} containerStyle={{ marginHorizontal: 8 }} distance={5} offset={[0, 10]}>
+              <Shadow
+                style={[styles.person, themeStyles.background]}
+                stretch={true}
+                containerStyle={{ marginHorizontal: 8 }}
+                distance={5}
+                offset={[0, 10]}
+              >
                 <View style={styles.person__name}>
-                  <Text>{item.name}</Text>
+                  <Text style={themeStyles.fontColor}>{item.name}</Text>
                 </View>
                 <View style={styles.person__lastUpdate}>
-                  <Text>Updated: {item.lastUpdate.substring(0, 5)}</Text>
+                  <Text style={themeStyles.fontColor}>Updated: {item.lastUpdate.substring(0, 5)}</Text>
                 </View>
                 <View style={styles.person__balanceContainer}>
                   {activePerson === item.id ? (
@@ -429,12 +462,14 @@ export default function Home({ navigation }) {
                         id={item.id}
                         insufficientMoney={item.insufficientMoney}
                       />
-                      <Text style={styles.person__balance}>/ {paymentAmount}</Text>
+                      <Text style={styles.person__balance}>
+                        <Text style={themeStyles.fontColor}>/ {paymentAmount}</Text>
+                      </Text>
                     </>
                   ) : (
                     <>
                       <Text style={[styles.person__balance, { color: item.insufficientMoney ? '#DE3163' : '#2AAA8A' }]}>
-                        {item.currentCash} <Text style={{ color: '#141823' }}>/ {paymentAmount}</Text>
+                        {item.currentCash} <Text style={themeStyles.fontColor}>/ {paymentAmount}</Text>
                       </Text>
                     </>
                   )}
@@ -443,7 +478,9 @@ export default function Home({ navigation }) {
                   <Pressable
                     style={styles.person__delete}
                     onPress={() => {
-                      setList(list.filter((person) => item.id !== person.id));
+                      const updatedList = list.filter((person) => item.id !== person.id);
+                      setList(updatedList);
+                      storeList(updatedList, sortList);
                     }}
                   >
                     <MaterialCommunityIcons name='delete-forever' size={24} color='#DE3163' />
@@ -453,7 +490,7 @@ export default function Home({ navigation }) {
             </Pressable>
             {activePerson === item.id && (
               <View style={styles.redactPerson}>
-                <View style={styles.redactPerson__container}>
+                <View style={[styles.redactPerson__container, themeStyles.background]}>
                   <View style={styles.redactPerson__buttons}>
                     <CustomButton
                       style={[styles.button, styles.redactPerson__addPayment]}
@@ -475,6 +512,7 @@ export default function Home({ navigation }) {
                     </CustomButton>
                   </View>
                   <View>
+                    <Text style={[styles.redactPerson__pairId, themeStyles.fontColor]}>Pair id: {item.pairId}</Text>
                     <Text style={styles.redactPerson__tip}>To change balance by custom value, click on the balance.</Text>
                   </View>
                 </View>
@@ -523,7 +561,7 @@ const styles = StyleSheet.create({
   },
   // popout for list items
   redactPerson: {
-    minHeight: 116,
+    minHeight: 136,
     marginHorizontal: 8,
   },
   redactPerson__container: {
@@ -561,6 +599,9 @@ const styles = StyleSheet.create({
   },
   redactPerson__tip: {
     color: '#a3a3a3',
+  },
+  redactPerson__pairId: {
+    marginBottom: 4,
   },
   person__balanceContainer: {
     flexDirection: 'row',

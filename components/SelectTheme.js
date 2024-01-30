@@ -1,34 +1,33 @@
-import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
+import useThemeColors from '../hooks/useThemeColors';
 
 const SelectTheme = () => {
-  const [activeTheme, setActiveTheme] = useState('light');
+  const { themeStyles, appTheme } = useThemeColors();
+  const borderColor = appTheme === 'light' ? '#000' : '#fff';
 
   return (
     <View style={styles.theme}>
       <View style={styles.theme__option}>
-        <Text style={styles.theme__label}>Light</Text>
+        <Text style={[styles.theme__label, themeStyles.fontColor]}>Light</Text>
         <TouchableOpacity
-          style={styles.theme__button}
+          style={[styles.theme__button, { borderColor }]}
           onPress={() => {
             EventRegister.emit('themeChange', 'light');
-            setActiveTheme('light');
           }}
         >
-          <View style={activeTheme === 'light' && styles.theme__mark}></View>
+          <View style={appTheme === 'light' && styles.theme__mark}></View>
         </TouchableOpacity>
       </View>
       <View style={styles.theme__option}>
-        <Text style={styles.theme__label}>Dark</Text>
+        <Text style={[styles.theme__label, themeStyles.fontColor]}>Dark</Text>
         <TouchableOpacity
-          style={styles.theme__button}
+          style={[styles.theme__button, { borderColor }]}
           onPress={() => {
             EventRegister.emit('themeChange', 'dark');
-            setActiveTheme('dark');
           }}
         >
-          <View style={activeTheme === 'dark' && styles.theme__mark}></View>
+          <View style={appTheme === 'dark' && styles.theme__mark}></View>
         </TouchableOpacity>
       </View>
     </View>
@@ -54,6 +53,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderWidth: 1,
+
     borderRadius: 100,
   },
   theme__mark: {

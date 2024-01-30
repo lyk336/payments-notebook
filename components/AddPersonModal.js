@@ -3,16 +3,19 @@ import { Formik } from 'formik';
 import { View, TextInput, Text, Modal, StyleSheet, Pressable, Keyboard } from 'react-native';
 import CustomButton from './CustomButton';
 import * as yup from 'yup';
+import useThemeColors from '../hooks/useThemeColors';
 
 const personSchema = yup.object({
   name: yup.string().required().max(30),
   pairId: yup.string().required().max(10),
 });
 
-const AddPersonModal = ({ modalVisible, closeModal, handleAddPerson }) => {
+const AddPersonModal = ({ modalVisible, closeModal, handleAddPerson, inputStyle }) => {
+  const { themeStyles, appTheme } = useThemeColors();
+
   return (
     <Modal animationType='slide' transparent={true} visible={modalVisible} onRequestClose={closeModal}>
-      <Pressable style={styles.modal__container} onPress={Keyboard.dismiss}>
+      <Pressable style={[styles.modal__container, themeStyles.background]} onPress={Keyboard.dismiss}>
         <View style={styles.modal}>
           <Formik
             initialValues={{ name: '', pairId: '' }}
@@ -24,20 +27,22 @@ const AddPersonModal = ({ modalVisible, closeModal, handleAddPerson }) => {
           >
             {(props) => (
               <View style={styles.modal__form}>
-                <Text style={styles.modal__label}>Name:</Text>
+                <Text style={[styles.modal__label, themeStyles.fontColor]}>Name:</Text>
                 {props.errors.name && <Text style={styles.modal__error}>{props.errors.name}</Text>}
                 <TextInput
-                  style={styles.modal__input}
+                  style={[styles.modal__input, themeStyles.fontColor]}
                   placeholder='Name'
+                  placeholderTextColor={appTheme === 'light' ? '#0006' : '#fff6'}
                   onChangeText={props.handleChange('name')}
                   value={props.values.name}
                 />
-                <Text style={styles.modal__label}>Add pair's id:</Text>
+                <Text style={[styles.modal__label, themeStyles.fontColor]}>Add pair's id:</Text>
                 <Text style={styles.modal__tip}>(write whatever you want, but it should be the same as your partner's id)</Text>
                 {props.errors.pairId && <Text style={styles.modal__error}>{props.errors.pairId}</Text>}
                 <TextInput
-                  style={styles.modal__input}
+                  style={[styles.modal__input, themeStyles.fontColor]}
                   placeholder='Pair id'
+                  placeholderTextColor={appTheme === 'light' ? '#0006' : '#fff6'}
                   onChangeText={props.handleChange('pairId')}
                   value={props.values.pairId}
                 />
@@ -64,6 +69,7 @@ AddPersonModal.propTypes = {
   modalVisible: PropTypes.bool.isRequired,
   closeModal: PropTypes.func.isRequired,
   handleAddPerson: PropTypes.func.isRequired,
+  inputStyle: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({

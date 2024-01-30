@@ -8,7 +8,7 @@ const priceSchema = yup.object({
   price: yup.number().required('').positive().typeError('Must be a number'),
 });
 
-const ChangePriceInput = ({ handleChangePrice, handleCancel }) => {
+const ChangePriceInput = ({ handleChangePrice, handleCancel, fontColor }) => {
   return (
     <Formik
       initialValues={{ price: '' }}
@@ -19,10 +19,11 @@ const ChangePriceInput = ({ handleChangePrice, handleCancel }) => {
     >
       {(props) => (
         <>
-          {props.errors.price && <Text>{props.errors.price}</Text>}
+          {props.errors.price && <Text style={styles.error}>{props.errors.price}</Text>}
           <TextInput
-            style={styles.options__input}
+            style={[styles.options__input, { color: fontColor }]}
             placeholder='New Price'
+            placeholderTextColor={`${fontColor}6`}
             maxLength={3}
             onChangeText={props.handleChange('price')}
             value={props.values.price}
@@ -43,6 +44,7 @@ const ChangePriceInput = ({ handleChangePrice, handleCancel }) => {
 ChangePriceInput.propTypes = {
   handleChangePrice: PropTypes.func.isRequired,
   handleCancel: PropTypes.func.isRequired,
+  fontColor: PropTypes.string.isRequired,
 };
 
 const styles = StyleSheet.create({
@@ -69,6 +71,10 @@ const styles = StyleSheet.create({
   },
   cancel: {
     backgroundColor: '#DE3163',
+  },
+  error: {
+    color: '#DE3163',
+    marginBottom: 4,
   },
 });
 

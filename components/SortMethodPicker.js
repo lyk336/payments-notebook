@@ -1,12 +1,17 @@
 import PropTypes from 'prop-types';
 import { StyleSheet, View } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
+import useThemeColors from '../hooks/useThemeColors';
 
 const SortMethodPicker = ({ value, handleSortChange }) => {
+  const { appTheme } = useThemeColors();
+
   return (
     <View style={styles.picker__container}>
       <RNPickerSelect
-        style={styles}
+        style={{
+          inputAndroid: { backgroundColor: appTheme === 'light' ? '#fff' : '#525252', color: appTheme === 'light' ? '#000' : '#fff' },
+        }}
         onValueChange={handleSortChange}
         value={value}
         placeholder={{}}
@@ -27,9 +32,6 @@ SortMethodPicker.propTypes = {
 };
 
 const styles = StyleSheet.create({
-  inputAndroid: {
-    backgroundColor: '#fff',
-  },
   picker__container: {
     marginTop: 16,
     borderWidth: 1,

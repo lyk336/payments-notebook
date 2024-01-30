@@ -1,24 +1,22 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Keyboard, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Keyboard } from 'react-native';
 import CustomButton from './CustomButton';
 import ChangePriceInput from './ChangePriceInput';
 import SelectTheme from './SelectTheme';
-
-// const windowHeight = Dimensions.get('window').height;
+import useThemeColors from '../hooks/useThemeColors';
+import { storePrice, getPrice } from '../utils/operatePrice';
 
 const Settings = () => {
   const [priceChanging, setPriceChanging] = useState(false);
   const [price, setPrice] = useState(18);
+  const { themeStyles, appTheme } = useThemeColors();
 
-  // const scrollToElement = () => {
-  //   first method is element I want scroll to
-  //   test2Ref.current.measure((x, y, width, height, pageX, pageY) => {
-  // method that scrolls
-  //     scrollViewRef.current.scrollTo({ y: pageY - 80, animated: true });
-  //   });
-  // };
+  useEffect(() => {
+    getPrice(setPrice);
+  }, []);
 
   const handleChangePrice = (newPrice) => {
+    storePrice(JSON.stringify(newPrice));
     setPrice(newPrice);
     setPriceChanging(false);
   };
@@ -28,27 +26,32 @@ const Settings = () => {
 
   return (
     <Pressable onPress={Keyboard.dismiss} style={{ flex: 1, marginTop: 2 }}>
-      <ScrollView style={styles.options}>
-        <View style={styles.options__section}>
-          <Text style={styles.options__title}>Change price for 1 lesson</Text>
+      <ScrollView style={[styles.options, themeStyles.background]}>
+        <View style={[styles.options__section, { borderBottomColor: appTheme === 'light' ? '#e5e5e5' : '#a3a3a3' }]}>
+          <Text style={[styles.options__title, themeStyles.fontColor]}>Change price for 1 lesson</Text>
           <View>
-            <Text style={[styles.options__text, styles.options__price]}>Current price: {price}</Text>
+            <Text style={[styles.options__text, styles.options__price, themeStyles.fontColor]}>Current price: {price}</Text>
           </View>
           {priceChanging ? (
-            <ChangePriceInput handleChangePrice={handleChangePrice} handleCancel={handleCancel} />
+            <ChangePriceInput
+              handleChangePrice={handleChangePrice}
+              handleCancel={handleCancel}
+              fontColor={appTheme === 'light' ? '#000' : '#fff'}
+            />
           ) : (
             <CustomButton
               handler={() => {
                 setPriceChanging(true);
               }}
-              style={[styles.options__button, styles.changeButton]}
+              style={[styles.options__button, styles.changeButton, { backgroundColor: appTheme === 'light' ? '#eee' : '#626262' }]}
+              textStyle={themeStyles.fontColor}
             >
               Change Value
             </CustomButton>
           )}
         </View>
-        <View style={styles.options__section}>
-          <Text style={styles.options__title}>App theme</Text>
+        <View style={[styles.options__section, { borderBottomColor: appTheme === 'light' ? '#e5e5e5' : '#a3a3a3' }]}>
+          <Text style={[styles.options__title, themeStyles.fontColor]}>App theme</Text>
           <SelectTheme />
         </View>
       </ScrollView>

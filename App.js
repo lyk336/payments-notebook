@@ -4,11 +4,13 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import Home from './components/Home';
 import Settings from './components/Settings';
+import HistoryOfChanges from './components/HistoryOfChanges';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
+import useThemeColors from './hooks/useThemeColors';
 
 const statusBarHeight = StatusBar.currentHeight;
 
@@ -28,6 +30,7 @@ DrawerSection.propTypes = {
 
 const DrawerComponents = ({ currentScreen, navigation }) => {
   const [editing, setEditing] = useState(false);
+  const { themeStyles } = useThemeColors();
 
   const toggleEdit = () => {
     setEditing(!editing);
@@ -47,6 +50,7 @@ const DrawerComponents = ({ currentScreen, navigation }) => {
           <DrawerSection title='Tools' />
           <DrawerItem
             label={editing ? 'Finish editing' : 'Edit list'}
+            labelStyle={themeStyles.fontColor}
             onPress={() => {
               EventRegister.emit('toggleEdit');
               EventRegister.emit('toggleEditTitle');
@@ -67,6 +71,7 @@ DrawerComponents.propTypes = {
 const App = () => {
   const navigationRef = useNavigationContainerRef();
   const [currentScreen, setCurrentScreen] = useState('Home');
+  const { themeStyles, appTheme } = useThemeColors();
 
   return (
     <NavigationContainer
@@ -78,25 +83,29 @@ const App = () => {
       <Drawer.Navigator
         screenOptions={{
           drawerPosition: 'right',
-          drawerStyle: {
-            width: 250,
-            minWidth: '25%',
-          },
+          drawerStyle: [
+            {
+              width: 250,
+              minWidth: '25%',
+            },
+            themeStyles.background,
+          ],
+          drawerLabelStyle: themeStyles.fontColor,
           header: ({ navigation, route }) => {
             return (
-              <View style={styles.header}>
+              <View style={[styles.header, { backgroundColor: appTheme === 'light' ? '#fff' : '#414141' }]}>
                 {route.name !== 'Home' && (
                   <Pressable style={styles.header__back} onPress={() => navigation.goBack()}>
                     <View>
-                      <MaterialIcons name='arrow-back' size={28} color='black' />
+                      <MaterialIcons name='arrow-back' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
                     </View>
-                    <Text style={styles.header__backText}>Back</Text>
+                    <Text style={[styles.header__backText, themeStyles.fontColor]}>Back</Text>
                   </Pressable>
                 )}
-                <Text style={styles.header__title}>{currentScreen}</Text>
+                <Text style={[styles.header__title, themeStyles.fontColor]}>{currentScreen}</Text>
                 <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
                   <View style={styles.header__icon}>
-                    <Feather name='menu' size={28} color='black' />
+                    <Feather name='menu' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
                   </View>
                 </Pressable>
               </View>
@@ -114,6 +123,7 @@ const App = () => {
       >
         <Drawer.Screen name='Home' component={Home} initialParams={{ editing: false }} />
         <Drawer.Screen name='Settings' component={Settings} />
+        <Drawer.Screen name='HistoryOfChanges' component={HistoryOfChanges} />
       </Drawer.Navigator>
     </NavigationContainer>
   );
@@ -146,7 +156,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: statusBarHeight,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    marginBottom: -2,
   },
   header__title: {
     marginRight: 16,
