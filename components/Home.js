@@ -135,7 +135,6 @@ export default function Home({ navigation }) {
   useEffect(() => {
     getPrice(setPaymentAmount);
     getList(setList);
-    sortList.sort();
   }, []);
 
   // add event listeners
@@ -447,10 +446,10 @@ export default function Home({ navigation }) {
                 distance={5}
                 offset={[0, 10]}
               >
-                <View style={styles.person__name}>
+                <View>
                   <Text style={themeStyles.fontColor}>{item.name}</Text>
                 </View>
-                <View style={styles.person__lastUpdate}>
+                <View>
                   <Text style={themeStyles.fontColor}>Updated: {item.lastUpdate.substring(0, 5)}</Text>
                 </View>
                 <View style={styles.person__balanceContainer}>
