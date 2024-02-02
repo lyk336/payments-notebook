@@ -123,7 +123,7 @@ const App = () => {
       >
         <Drawer.Screen name='Home' component={Home} initialParams={{ editing: false }} />
         <Drawer.Screen name='Settings' component={Settings} />
-        <Drawer.Screen name='HistoryOfChanges' component={HistoryOfChanges} />
+        <Drawer.Screen name='History of changes' component={HistoryOfChanges} />
       </Drawer.Navigator>
     </NavigationContainer>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useColorScheme, StyleSheet } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storeTheme, getTheme } from '../utils/operateTheme';
 
 const colorSchemes = StyleSheet.create({
   light: {
@@ -14,31 +14,7 @@ const colorSchemes = StyleSheet.create({
   },
 });
 
-const storeTheme = async (theme) => {
-  try {
-    await AsyncStorage.setItem('theme', theme);
-  } catch (e) {
-    console.log(e);
-  }
-};
-
-const getTheme = async (setter, preferredTheme) => {
-  try {
-    const theme = await AsyncStorage.getItem('theme');
-    if (theme) {
-      setter(theme);
-    } else {
-      const newTheme = preferredTheme || 'light';
-      storeTheme(newTheme);
-      setter(newTheme);
-    }
-  } catch (e) {
-    console.log(e);
-  }
-};
-
 const useThemeColors = () => {
-  // in future check start value inside local storage
   const theme = useColorScheme();
   const [appTheme, setAppTheme] = useState(theme);
 

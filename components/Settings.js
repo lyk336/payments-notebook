@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Keyboard } from 'react-n
 import CustomButton from './CustomButton';
 import ChangePriceInput from './ChangePriceInput';
 import SelectTheme from './SelectTheme';
+import ImportOrExportSettings from './ImportOrExportSettings';
 import useThemeColors from '../hooks/useThemeColors';
 import { storePrice, getPrice } from '../utils/operatePrice';
 
@@ -30,7 +31,9 @@ const Settings = () => {
         <View style={[styles.options__section, { borderBottomColor: appTheme === 'light' ? '#e5e5e5' : '#a3a3a3' }]}>
           <Text style={[styles.options__title, themeStyles.fontColor]}>Change price for 1 lesson</Text>
           <View>
-            <Text style={[styles.options__text, styles.options__price, themeStyles.fontColor]}>Current price: {price}</Text>
+            <Text style={[styles.options__text, styles.options__price, themeStyles.fontColor]}>
+              Current price: {price}
+            </Text>
           </View>
           {priceChanging ? (
             <ChangePriceInput
@@ -43,7 +46,11 @@ const Settings = () => {
               handler={() => {
                 setPriceChanging(true);
               }}
-              style={[styles.options__button, styles.changeButton, { backgroundColor: appTheme === 'light' ? '#eee' : '#626262' }]}
+              style={[
+                styles.options__button,
+                styles.changeButton,
+                { backgroundColor: appTheme === 'light' ? '#eee' : '#626262' },
+              ]}
               textStyle={themeStyles.fontColor}
             >
               Change Value
@@ -53,6 +60,10 @@ const Settings = () => {
         <View style={[styles.options__section, { borderBottomColor: appTheme === 'light' ? '#e5e5e5' : '#a3a3a3' }]}>
           <Text style={[styles.options__title, themeStyles.fontColor]}>App theme</Text>
           <SelectTheme />
+        </View>
+        <View style={[styles.options__section, { borderBottomColor: appTheme === 'light' ? '#e5e5e5' : '#a3a3a3' }]}>
+          <Text style={[styles.options__title, themeStyles.fontColor]}>Export/Import settings</Text>
+          <ImportOrExportSettings />
         </View>
       </ScrollView>
     </Pressable>

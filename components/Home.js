@@ -11,6 +11,7 @@ import SortMethodPicker from './SortMethodPicker';
 import useThemeColors from '../hooks/useThemeColors';
 import { getPrice } from '../utils/operatePrice';
 import { storeList, getList } from '../utils/operateList';
+import { storeSavedLists } from '../utils/operateHistoryOfChanges';
 
 const getCurrrentTime = () => {
   const date = new Date();
@@ -25,110 +26,50 @@ const getCurrrentTime = () => {
 };
 
 export default function Home({ navigation }) {
-  /* 
-  [
-    {
-      name: 'Вова',
-      currentCash: 20,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '123',
-      id: 'jdsa',
-    },
-    {
-      name: 'Роман',
-      currentCash: 15,
-      lastUpdate: '21.09',
-      insufficientMoney: true,
-      pairId: 'sdajkl',
-      id: 'asdasdsa',
-    },
-    {
-      name: 'Withpair 3',
-      currentCash: 18,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '3',
-      id: 'd3dasa321sa',
-    },
-    {
-      name: 'Андрій',
-      currentCash: 18,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '123',
-      id: 'd123dasasdsa',
-    },
-    {
-      name: 'pair 1',
-      currentCash: 30,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '1',
-      id: 'jdsdsaa',
-    },
-    {
-      name: 'pair 2',
-      currentCash: 15,
-      lastUpdate: '21.09',
-      insufficientMoney: true,
-      pairId: '2',
-      id: '2',
-    },
-    {
-      name: 'pair 3',
-      currentCash: 18,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '3',
-      id: 'd3dasasa',
-    },
-    {
-      name: 'Withpair 1',
-      currentCash: 30,
-      lastUpdate: '21.09',
-      insufficientMoney: false,
-      pairId: '1',
-      id: 'jds123dsaa',
-    },
-    {
-      name: 'Withpair 2',
-      currentCash: 15,
-      lastUpdate: '21.09',
-      insufficientMoney: true,
-      pairId: '2',
-      id: '2123',
-    },
-  ]
-  */
   const [list, setList] = useState([]);
-  // should be replaced by settings obj or something in future
   const [paymentAmount, setPaymentAmount] = useState(18);
-  // ---------------------------------------------------------
   const [editing, setEditing] = useState(false);
   const [addingPerson, setAddingPerson] = useState(false);
   const [activePerson, setActivePerson] = useState('');
   const [sortMethod, setSortMethod] = useState('byAlphabet');
+  const [timeoutId, setTimeoutId] = useState('');
   const { themeStyles } = useThemeColors();
+
+  const saveListToStorage = (list) => {
+    clearTimeout(timeoutId);
+    setTimeoutId(
+      setTimeout(() => {
+        storeSavedLists(list, sortList);
+      }, 10000)
+    );
+  };
+  const changeListEverywhere = (list) => {
+    setList(list);
+    storeList(list, sortList);
+    saveListToStorage(list);
+  };
 
   const createAlert = (peopleList, listToUpdate) => {
     const alertText = `Some people don't have enough money : ${peopleList}`;
-    const handleWithdraw = () => {
-      setList(listToUpdate);
-      storeList(listToUpdate, sortList);
-    };
 
-    Alert.alert('Not enough money!', alertText, [
-      {
-        text: 'Cancel',
-      },
-      {
-        text: 'Withdraw where possible',
-        onPress: () => {
-          handleWithdraw();
+    Alert.alert(
+      'Not enough money!',
+      alertText,
+      [
+        {
+          text: 'Cancel',
         },
-      },
-    ]);
+        {
+          text: 'Withdraw where possible',
+          onPress: () => {
+            changeListEverywhere(listToUpdate);
+          },
+        },
+      ],
+      {
+        cancelable: true,
+      }
+    );
   };
 
   // get data from async storage when app loads
@@ -146,6 +87,10 @@ export default function Home({ navigation }) {
   const changePricePerLesson = () => {
     getPrice(setPaymentAmount);
   };
+  const importList = (importedList) => {
+    setList(importedList);
+    storeList(importedList, sortList);
+  };
   useEffect(() => {
     // clean previous events to avoid double function calls
     EventRegister.removeEventListener(toggleEditEvent);
@@ -157,6 +102,12 @@ export default function Home({ navigation }) {
     // handle drawer menu's button
     const priceChangeEvent = EventRegister.addEventListener('priceChange', changePricePerLesson);
   }, [changePricePerLesson]);
+  useEffect(() => {
+    EventRegister.removeEventListener(importListEvent);
+    const importListEvent = EventRegister.addEventListener('importList', (importedList) => {
+      importList(importedList);
+    });
+  }, [importList]);
 
   const sortList = {
     compare(firstItem, secondItem) {
@@ -250,11 +201,12 @@ export default function Home({ navigation }) {
 
     person.currentCash = 0;
     person.insufficientMoney = true;
-    person.id = `${date.getDate()}${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}${Math.round(Math.random() * 1000)}`;
+    person.id = `${date.getDate()}${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}${Math.round(
+      Math.random() * 1000
+    )}`;
     person.lastUpdate = getCurrrentTime();
 
-    setList([person, ...list]);
-    storeList([person, ...list], sortList);
+    changeListEverywhere([person, ...list]);
 
     setAddingPerson(false);
   };
@@ -273,8 +225,7 @@ export default function Home({ navigation }) {
       }
     });
 
-    setList(listClone);
-    storeList(listClone, sortList);
+    changeListEverywhere(listClone);
   };
 
   const handleChangeBalance = (operation, id) => {
@@ -339,8 +290,7 @@ export default function Home({ navigation }) {
 
       createAlert(peopleListForMessage, listClone);
     } else {
-      setList(listClone);
-      storeList(listClone, sortList);
+      changeListEverywhere(listClone);
     }
   };
 
@@ -368,7 +318,9 @@ export default function Home({ navigation }) {
       }}
     >
       <View style={[styles.tools, themeStyles.background]}>
-        <Text style={[styles.tools__title, themeStyles.fontColor]}>{editing ? 'Editing' : 'Change all balances in one click'}</Text>
+        <Text style={[styles.tools__title, themeStyles.fontColor]}>
+          {editing ? 'Editing' : 'Change all balances in one click'}
+        </Text>
         <View style={[styles.tools__buttons, { flexDirection: editing ? 'column' : 'row' }]}>
           {editing ? (
             <>
@@ -478,8 +430,7 @@ export default function Home({ navigation }) {
                     style={styles.person__delete}
                     onPress={() => {
                       const updatedList = list.filter((person) => item.id !== person.id);
-                      setList(updatedList);
-                      storeList(updatedList, sortList);
+                      changeListEverywhere(updatedList);
                     }}
                   >
                     <MaterialCommunityIcons name='delete-forever' size={24} color='#DE3163' />
@@ -512,7 +463,9 @@ export default function Home({ navigation }) {
                   </View>
                   <View>
                     <Text style={[styles.redactPerson__pairId, themeStyles.fontColor]}>Pair id: {item.pairId}</Text>
-                    <Text style={styles.redactPerson__tip}>To change balance by custom value, click on the balance.</Text>
+                    <Text style={styles.redactPerson__tip}>
+                      To change balance by custom value, click on the balance.
+                    </Text>
                   </View>
                 </View>
               </View>
