@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   theme__mark: {
-    backgroundColor: '#4169E1',
+    backgroundColor: '#6082B6',
     width: 14,
     height: 14,
     borderRadius: 100,

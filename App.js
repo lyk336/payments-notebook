@@ -12,8 +12,6 @@ import { StatusBar } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
 import useThemeColors from './hooks/useThemeColors';
 
-const statusBarHeight = StatusBar.currentHeight;
-
 const Drawer = createDrawerNavigator();
 
 const DrawerSection = ({ title }) => {
@@ -93,22 +91,25 @@ const App = () => {
           drawerLabelStyle: themeStyles.fontColor,
           header: ({ navigation, route }) => {
             return (
-              <View style={[styles.header, { backgroundColor: appTheme === 'light' ? '#fff' : '#414141' }]}>
-                {route.name !== 'Home' && (
-                  <Pressable style={styles.header__back} onPress={() => navigation.goBack()}>
-                    <View>
-                      <MaterialIcons name='arrow-back' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
+              <>
+                <StatusBar backgroundColor={appTheme === 'light' ? '#fff' : '#414141'} />
+                <View style={[styles.header, { backgroundColor: appTheme === 'light' ? '#fff' : '#414141' }]}>
+                  {route.name !== 'Home' && (
+                    <Pressable style={styles.header__back} onPress={() => navigation.goBack()}>
+                      <View>
+                        <MaterialIcons name='arrow-back' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
+                      </View>
+                      <Text style={[styles.header__backText, themeStyles.fontColor]}>Back</Text>
+                    </Pressable>
+                  )}
+                  <Text style={[styles.header__title, themeStyles.fontColor]}>{currentScreen}</Text>
+                  <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
+                    <View style={styles.header__icon}>
+                      <Feather name='menu' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
                     </View>
-                    <Text style={[styles.header__backText, themeStyles.fontColor]}>Back</Text>
                   </Pressable>
-                )}
-                <Text style={[styles.header__title, themeStyles.fontColor]}>{currentScreen}</Text>
-                <Pressable style={styles.header__menu} onPress={() => navigation.openDrawer()}>
-                  <View style={styles.header__icon}>
-                    <Feather name='menu' size={28} color={appTheme === 'light' ? '#000' : '#fff'} />
-                  </View>
-                </Pressable>
-              </View>
+                </View>
+              </>
             );
           },
         }}
@@ -152,9 +153,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
 
-    height: 48 + statusBarHeight,
+    height: 48,
     width: '100%',
-    paddingTop: statusBarHeight,
     paddingHorizontal: 16,
     marginBottom: -2,
   },
