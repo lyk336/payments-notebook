@@ -3,9 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import useThemeColors from '../hooks/useThemeColors';
 
-const SortMethodPicker = ({ value, handleSortChange }) => {
+const PriceGroupPicker = ({ value, personId, handleGroupChange, priceGroupesList }) => {
   const { appTheme } = useThemeColors();
 
+  const pickerItems = priceGroupesList.map((group) => ({
+    label: group.groupName,
+    value: group.groupName,
+    key: group.groupName,
+  }));
   return (
     <View style={styles.picker__container}>
       <RNPickerSelect
@@ -15,24 +20,22 @@ const SortMethodPicker = ({ value, handleSortChange }) => {
             color: appTheme === 'light' ? '#000' : '#fff',
           },
         }}
-        onValueChange={handleSortChange}
+        onValueChange={(value) => {
+          handleGroupChange(value, personId);
+        }}
         value={value}
         placeholder={{}}
-        items={[
-          { label: 'Sort by alphabet', value: 'byAlphabet' },
-          { label: 'Sort by pair', value: 'byPair' },
-          { label: 'Sort by money', value: 'byMoney' },
-          { label: 'Sort by last update', value: 'byUpdate' },
-          { label: 'Sort by price groups', value: 'byPriceGroups' },
-        ]}
+        items={[{ label: 'none', value: 'default', key: 'default' }, ...pickerItems]}
       />
     </View>
   );
 };
 
-SortMethodPicker.propTypes = {
+PriceGroupPicker.propTypes = {
   value: PropTypes.string.isRequired,
-  handleSortChange: PropTypes.func.isRequired,
+  personId: PropTypes.string.isRequired,
+  handleGroupChange: PropTypes.func.isRequired,
+  priceGroupesList: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
 const styles = StyleSheet.create({
@@ -44,4 +47,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SortMethodPicker;
+export default PriceGroupPicker;

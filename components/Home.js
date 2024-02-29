@@ -12,6 +12,9 @@ import useThemeColors from '../hooks/useThemeColors';
 import { getPrice } from '../utils/operatePrice';
 import { storeList, getList } from '../utils/operateList';
 import { storeSavedLists } from '../utils/operateHistoryOfChanges';
+import PriceGroupPicker from './PriceGroupPicker';
+import { getPriceMode } from '../utils/operatePriceMode';
+import { getPriceGroupsList } from '../utils/operatePriceGroupsList';
 
 const getCurrrentTime = () => {
   const date = new Date();
@@ -27,13 +30,15 @@ const getCurrrentTime = () => {
 
 export default function Home({ navigation }) {
   const [list, setList] = useState([]);
-  const [paymentAmount, setPaymentAmount] = useState(18);
+  const [defaultPaymentAmount, setDefaultPaymentAmount] = useState(18);
   const [editing, setEditing] = useState(false);
   const [addingPerson, setAddingPerson] = useState(false);
   const [activePerson, setActivePerson] = useState('');
   const [sortMethod, setSortMethod] = useState('byAlphabet');
   const [timeoutId, setTimeoutId] = useState('');
-  const { themeStyles } = useThemeColors();
+  const { themeStyles, appTheme } = useThemeColors();
+  const [priceMode, setPriceMode] = useState('Single price');
+  const [priceGroupsList, setPriceGroupsList] = useState([]);
 
   const saveListToStorage = (list) => {
     clearTimeout(timeoutId);
@@ -74,8 +79,10 @@ export default function Home({ navigation }) {
 
   // get data from async storage when app loads
   useEffect(() => {
-    getPrice(setPaymentAmount);
+    getPrice(setDefaultPaymentAmount);
     getList(setList);
+    getPriceMode(setPriceMode);
+    getPriceGroupsList(setPriceGroupsList);
   }, []);
 
   // add event listeners
@@ -84,8 +91,8 @@ export default function Home({ navigation }) {
     setAddingPerson(false);
     navigation.closeDrawer();
   };
-  const changePricePerLesson = () => {
-    getPrice(setPaymentAmount);
+  const changeDefaultPricePerPayment = () => {
+    getPrice(setDefaultPaymentAmount);
   };
   const importList = (importedList) => {
     setList(importedList);
@@ -99,15 +106,26 @@ export default function Home({ navigation }) {
   }, [toggleEdit]);
   useEffect(() => {
     EventRegister.removeEventListener(priceChangeEvent);
-    // handle drawer menu's button
-    const priceChangeEvent = EventRegister.addEventListener('priceChange', changePricePerLesson);
-  }, [changePricePerLesson]);
+    const priceChangeEvent = EventRegister.addEventListener('priceChange', changeDefaultPricePerPayment);
+  }, [changeDefaultPricePerPayment]);
   useEffect(() => {
     EventRegister.removeEventListener(importListEvent);
     const importListEvent = EventRegister.addEventListener('importList', (importedList) => {
       importList(importedList);
     });
   }, [importList]);
+  useEffect(() => {
+    EventRegister.removeEventListener(priceGroupsListChangeEvent);
+    const priceGroupsListChangeEvent = EventRegister.addEventListener('groupsListChange', (list) => {
+      setPriceGroupsList(list);
+    });
+  }, []);
+  useEffect(() => {
+    EventRegister.removeEventListener(priceModeChangeEvent);
+    const priceModeChangeEvent = EventRegister.addEventListener('priceModeChange', (mode) => {
+      setPriceMode(mode);
+    });
+  }, []);
 
   const sortList = {
     compare(firstItem, secondItem) {
@@ -169,6 +187,24 @@ export default function Home({ navigation }) {
         return this.compare(firstDate, secondDate);
       });
     },
+    sortByPriceGroups(listClone) {
+      if (sortMethod !== 'byAlphabet') {
+        this.sortByAlphabet(listClone);
+      }
+      let groupsInRow = [];
+      for (let i = 0; i < priceGroupsList.length; i++) {
+        for (let j = 0; j < listClone.length; j++) {
+          if (listClone[j].priceGroup === priceGroupsList[i].groupName) {
+            groupsInRow.push(listClone[j]);
+            listClone.splice(j, 1);
+            --j;
+          }
+        }
+      }
+
+      listClone = groupsInRow.concat(listClone);
+      return listClone;
+    },
     sort() {
       let listClone = lodash.cloneDeep(list);
 
@@ -179,6 +215,9 @@ export default function Home({ navigation }) {
         case 'byPair':
           // for some reason listClone doen't update outside of this method, so I decided to do this:
           listClone = this.sortByPair(listClone);
+          break;
+        case 'byPriceGroups':
+          listClone = this.sortByPriceGroups(listClone);
           break;
         case 'byMoney':
           this.sortByMoney(listClone);
@@ -196,6 +235,17 @@ export default function Home({ navigation }) {
     sortList.sort();
   }, [sortMethod]);
 
+  // when any price changes => reinspect all list items for insufficient money
+  useEffect(() => {
+    const listClone = lodash.cloneDeep(list);
+    listClone.forEach((person) => {
+      person.currentCash < getPaymentAmmount(person.priceGroup)
+        ? (person.insufficientMoney = true)
+        : (person.insufficientMoney = false);
+    });
+    setList(listClone);
+  }, [defaultPaymentAmount, priceMode, priceGroupsList]);
+
   const handleAddPerson = (person) => {
     const date = new Date();
 
@@ -205,10 +255,24 @@ export default function Home({ navigation }) {
       Math.random() * 1000
     )}`;
     person.lastUpdate = getCurrrentTime();
+    person.priceGroup = 'default';
 
     changeListEverywhere([person, ...list]);
 
     setAddingPerson(false);
+  };
+
+  const getPaymentAmmount = (groupName, useDefaultPrice) => {
+    if (priceMode === 'Single price' || useDefaultPrice) {
+      return defaultPaymentAmount;
+    } else {
+      const groupIndex = priceGroupsList.findIndex((group) => group.groupName === groupName);
+      if (groupIndex === -1) {
+        if (groupName !== 'default') groupName = 'default';
+        return getPaymentAmmount(null, true);
+      }
+      return +priceGroupsList[groupIndex].price;
+    }
   };
 
   const handleSubmitBalanceChange = (balance, id) => {
@@ -220,7 +284,9 @@ export default function Home({ navigation }) {
     listClone.forEach((person) => {
       if (person.id === id) {
         person.currentCash = +balance;
-        person.currentCash < paymentAmount ? (person.insufficientMoney = true) : (person.insufficientMoney = false);
+        person.currentCash < getPaymentAmmount(person.priceGroup)
+          ? (person.insufficientMoney = true)
+          : (person.insufficientMoney = false);
         person.lastUpdate = getCurrrentTime();
       }
     });
@@ -237,7 +303,7 @@ export default function Home({ navigation }) {
         if (!id) {
           // case when button changes all balances
           listClone.forEach((person) => {
-            person.currentCash += paymentAmount;
+            person.currentCash += getPaymentAmmount(person.priceGroup);
             person.lastUpdate = getCurrrentTime();
           });
           if (activePerson) {
@@ -247,7 +313,7 @@ export default function Home({ navigation }) {
           // case when button changes single balance
           listClone.forEach((person) => {
             if (person.id === id) {
-              person.currentCash += paymentAmount;
+              person.currentCash += getPaymentAmmount(person.priceGroup);
               person.lastUpdate = getCurrrentTime();
             }
           });
@@ -257,8 +323,9 @@ export default function Home({ navigation }) {
       case '-':
         if (!id) {
           listClone.forEach((person) => {
-            if (person.currentCash >= paymentAmount) {
-              person.currentCash -= paymentAmount;
+            const paymentAmmount = getPaymentAmmount(person.priceGroup);
+            if (person.currentCash >= paymentAmmount) {
+              person.currentCash -= paymentAmmount;
               person.lastUpdate = getCurrrentTime();
             } else {
               lessMoneyPeople.push(person.name);
@@ -269,8 +336,9 @@ export default function Home({ navigation }) {
           }
         } else {
           listClone.forEach((person) => {
-            if (person.id === id && person.currentCash >= paymentAmount) {
-              person.currentCash -= paymentAmount;
+            const paymentAmmount = getPaymentAmmount(person.priceGroup);
+            if (person.id === id && person.currentCash >= paymentAmmount) {
+              person.currentCash -= paymentAmmount;
               person.lastUpdate = getCurrrentTime();
             }
           });
@@ -279,7 +347,9 @@ export default function Home({ navigation }) {
     }
 
     listClone.forEach((person) => {
-      person.currentCash < paymentAmount ? (person.insufficientMoney = true) : (person.insufficientMoney = false);
+      person.currentCash < getPaymentAmmount(person.priceGroup)
+        ? (person.insufficientMoney = true)
+        : (person.insufficientMoney = false);
     });
 
     if (lessMoneyPeople.length) {
@@ -296,6 +366,14 @@ export default function Home({ navigation }) {
 
   const handleSortChange = (value) => {
     setSortMethod(value);
+  };
+
+  const handleGroupChange = (value, personId) => {
+    const listClone = lodash.cloneDeep(list);
+
+    const personIndex = listClone.findIndex((person) => person.id === personId);
+    listClone[personIndex].priceGroup = value;
+    setList(listClone);
   };
 
   // sort list after new item added or already existing item was updated
@@ -318,9 +396,14 @@ export default function Home({ navigation }) {
       }}
     >
       <View style={[styles.tools, themeStyles.background]}>
-        <Text style={[styles.tools__title, themeStyles.fontColor]}>
-          {editing ? 'Editing' : 'Change all balances in one click'}
-        </Text>
+        {editing ? (
+          <Text style={[styles.tools__title, themeStyles.fontColor]}>Editing</Text>
+        ) : (
+          <Text style={[styles.tools__title, themeStyles.fontColor]}>
+            Change all balances in one click{' '}
+            <Text style={{ color: appTheme === 'light' ? '#0006' : '#fff6' }}>(current mode: {priceMode})</Text>
+          </Text>
+        )}
         <View style={[styles.tools__buttons, { flexDirection: editing ? 'column' : 'row' }]}>
           {editing ? (
             <>
@@ -362,7 +445,7 @@ export default function Home({ navigation }) {
                   handleChangeBalance('+');
                 }}
               >
-                Add <Text>{paymentAmount}</Text>
+                Add {priceMode === 'Single price' && <Text>{defaultPaymentAmount}</Text>}
               </CustomButton>
               <CustomButton
                 style={[styles.button, styles.tools__withdrawPaymentFromEach]}
@@ -371,7 +454,7 @@ export default function Home({ navigation }) {
                   handleChangeBalance('-');
                 }}
               >
-                Withdraw <Text>{paymentAmount}</Text>
+                Withdraw {priceMode === 'Single price' && <Text>{defaultPaymentAmount}</Text>}
               </CustomButton>
             </>
           )}
@@ -380,98 +463,113 @@ export default function Home({ navigation }) {
       </View>
       {/* List */}
       <ScrollView style={[styles.peopleList, themeStyles.background]}>
-        {list.map((item) => (
-          <View key={item.id}>
-            <Pressable
-              onPress={() => {
-                if (activePerson === item.id) {
-                  setActivePerson('');
-                  return;
-                }
-                setActivePerson(item.id);
-              }}
-            >
-              <Shadow
-                style={[styles.person, themeStyles.background]}
-                stretch={true}
-                containerStyle={{ marginHorizontal: 8 }}
-                distance={5}
-                offset={[0, 10]}
+        {list.map((item) => {
+          const paymentAmmount = getPaymentAmmount(item.priceGroup);
+          return (
+            <View key={item.id}>
+              <Pressable
+                onPress={() => {
+                  if (activePerson === item.id) {
+                    setActivePerson('');
+                    return;
+                  }
+                  setActivePerson(item.id);
+                }}
               >
-                <View>
-                  <Text style={themeStyles.fontColor}>{item.name}</Text>
-                </View>
-                <View>
-                  <Text style={themeStyles.fontColor}>Updated: {item.lastUpdate.substring(0, 5)}</Text>
-                </View>
-                <View style={styles.person__balanceContainer}>
-                  {activePerson === item.id ? (
-                    <>
-                      <ChangeBalanceInput
-                        balance={item.currentCash}
-                        handleSubmit={handleSubmitBalanceChange}
-                        id={item.id}
-                        insufficientMoney={item.insufficientMoney}
-                      />
-                      <Text style={styles.person__balance}>
-                        <Text style={themeStyles.fontColor}>/ {paymentAmount}</Text>
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={[styles.person__balance, { color: item.insufficientMoney ? '#DE3163' : '#2AAA8A' }]}>
-                        {item.currentCash} <Text style={themeStyles.fontColor}>/ {paymentAmount}</Text>
-                      </Text>
-                    </>
-                  )}
-                </View>
-                {editing && (
-                  <Pressable
-                    style={styles.person__delete}
-                    onPress={() => {
-                      const updatedList = list.filter((person) => item.id !== person.id);
-                      changeListEverywhere(updatedList);
-                    }}
-                  >
-                    <MaterialCommunityIcons name='delete-forever' size={24} color='#DE3163' />
-                  </Pressable>
-                )}
-              </Shadow>
-            </Pressable>
-            {activePerson === item.id && (
-              <View style={styles.redactPerson}>
-                <View style={[styles.redactPerson__container, themeStyles.background]}>
-                  <View style={styles.redactPerson__buttons}>
-                    <CustomButton
-                      style={[styles.button, styles.redactPerson__addPayment]}
-                      textStyle={styles.buttonText}
-                      handler={() => {
-                        handleChangeBalance('+', item.id);
-                      }}
-                    >
-                      Add <Text>{paymentAmount}</Text>
-                    </CustomButton>
-                    <CustomButton
-                      style={[styles.button, styles.redactPerson__withdrawPayment]}
-                      textStyle={styles.buttonText}
-                      handler={() => {
-                        handleChangeBalance('-', item.id);
-                      }}
-                    >
-                      Withdraw <Text>{paymentAmount}</Text>
-                    </CustomButton>
+                <Shadow
+                  style={[styles.person, themeStyles.background]}
+                  stretch={true}
+                  containerStyle={{ marginHorizontal: 8 }}
+                  distance={5}
+                  offset={[0, 10]}
+                >
+                  <View>
+                    <Text style={themeStyles.fontColor}>{item.name}</Text>
                   </View>
                   <View>
-                    <Text style={[styles.redactPerson__pairId, themeStyles.fontColor]}>Pair id: {item.pairId}</Text>
-                    <Text style={styles.redactPerson__tip}>
-                      To change balance by custom value, click on the balance.
-                    </Text>
+                    <Text style={themeStyles.fontColor}>Updated: {item.lastUpdate.substring(0, 5)}</Text>
+                  </View>
+                  <View style={styles.person__balanceContainer}>
+                    {activePerson === item.id ? (
+                      <>
+                        <ChangeBalanceInput
+                          balance={item.currentCash}
+                          handleSubmit={handleSubmitBalanceChange}
+                          id={item.id}
+                          insufficientMoney={item.insufficientMoney}
+                        />
+                        <Text style={styles.person__balance}>
+                          <Text style={themeStyles.fontColor}>/ {paymentAmmount}</Text>
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text
+                          style={[styles.person__balance, { color: item.insufficientMoney ? '#DE3163' : '#2AAA8A' }]}
+                        >
+                          {item.currentCash}
+                          <Text style={themeStyles.fontColor}>/ {paymentAmmount}</Text>
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                  {editing && (
+                    <Pressable
+                      style={styles.person__delete}
+                      onPress={() => {
+                        const updatedList = list.filter((person) => item.id !== person.id);
+                        changeListEverywhere(updatedList);
+                      }}
+                    >
+                      <MaterialCommunityIcons name='delete-forever' size={24} color='#DE3163' />
+                    </Pressable>
+                  )}
+                </Shadow>
+              </Pressable>
+              {activePerson === item.id && (
+                <View style={styles.redactPerson}>
+                  <View style={[styles.redactPerson__container, themeStyles.background]}>
+                    <View style={styles.redactPerson__buttons}>
+                      <CustomButton
+                        style={[styles.button, styles.redactPerson__addPayment]}
+                        textStyle={styles.buttonText}
+                        handler={() => {
+                          handleChangeBalance('+', item.id);
+                        }}
+                      >
+                        Add <Text>{paymentAmmount}</Text>
+                      </CustomButton>
+                      <CustomButton
+                        style={[styles.button, styles.redactPerson__withdrawPayment]}
+                        textStyle={styles.buttonText}
+                        handler={() => {
+                          handleChangeBalance('-', item.id);
+                        }}
+                      >
+                        Withdraw <Text>{paymentAmmount}</Text>
+                      </CustomButton>
+                    </View>
+                    <View>
+                      <View style={styles.redactPerson__priceGroup}>
+                        <Text style={themeStyles.fontColor}>Price group:</Text>
+                        <PriceGroupPicker
+                          value={item.priceGroup}
+                          personId={item.id}
+                          handleGroupChange={handleGroupChange}
+                          priceGroupesList={priceGroupsList}
+                        />
+                      </View>
+                      <Text style={[styles.redactPerson__pairId, themeStyles.fontColor]}>Pair id: {item.pairId}</Text>
+                      <Text style={styles.redactPerson__tip}>
+                        To change balance by custom value, click on the balance.
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
-          </View>
-        ))}
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </Pressable>
   );
@@ -513,7 +611,7 @@ const styles = StyleSheet.create({
   },
   // popout for list items
   redactPerson: {
-    minHeight: 136,
+    minHeight: 244,
     marginHorizontal: 8,
   },
   redactPerson__container: {
@@ -548,6 +646,9 @@ const styles = StyleSheet.create({
   redactPerson__withdrawPayment: {
     paddingVertical: 6,
     backgroundColor: '#DE3163',
+  },
+  redactPerson__priceGroup: {
+    marginBottom: 8,
   },
   redactPerson__tip: {
     color: '#a3a3a3',

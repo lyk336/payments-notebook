@@ -49,12 +49,16 @@ const ImportOrExportSettings = () => {
       const list = await AsyncStorage.getItem('list');
       const theme = await AsyncStorage.getItem('theme');
       const price = await AsyncStorage.getItem('price');
+      const priceMode = await AsyncStorage.getItem('priceMode');
+      const groupsList = await AsyncStorage.getItem('priceGroupsList');
 
       const data = {
         isExported: true,
         list,
         theme,
         price,
+        priceMode,
+        groupsList,
       };
       await Clipboard.setStringAsync(JSON.stringify(data));
       setResultMessage('Settings copied!');
@@ -78,6 +82,8 @@ const ImportOrExportSettings = () => {
       data.list && (await AsyncStorage.setItem('list', data.list));
       data.theme && (await AsyncStorage.setItem('theme', data.theme));
       data.price && (await AsyncStorage.setItem('price', data.price));
+      data.priceMode && (await AsyncStorage.setItem('priceMode', data.priceMode));
+      data.groupsList && (await AsyncStorage.setItem('priceGroupsList', data.groupsList));
       setResultMessage('Settings imported! Restart the app before changing anything');
     } catch (e) {
       setErrorMessage(`${e}`);
