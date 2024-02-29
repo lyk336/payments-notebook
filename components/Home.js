@@ -237,6 +237,7 @@ export default function Home({ navigation }) {
 
   // when any price changes => reinspect all list items for insufficient money
   useEffect(() => {
+    if (!list || list.length === 0) return;
     const listClone = lodash.cloneDeep(list);
     listClone.forEach((person) => {
       person.currentCash < getPaymentAmmount(person.priceGroup)

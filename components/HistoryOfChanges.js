@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
   },
   listItem: {
     marginHorizontal: 15,
-    borderRadius: 4,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: '#e5e5e5',
